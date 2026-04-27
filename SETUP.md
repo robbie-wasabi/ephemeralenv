@@ -109,6 +109,34 @@ Do not commit real `.env.ephm` or `.env.ephemeral` files. For seeds:
 
 - MongoDB reads direct child `*.json` files from `seedDir`; each file must be a JSON array and maps to a collection name.
 - Postgres reads direct child `*.sql` files from `sqlDir` in lexical order, for example `001_schema.sql`, `002_seed_users.sql`.
+- Prisma projects usually should not use raw SQL seed files. Use `beforeApp` to run the project's existing migration and seed scripts after `DATABASE_URL` is generated.
+
+Prisma example:
+
+```ts
+import { defineConfig } from 'ephemeralenv'
+import { pglite } from 'ephemeralenv-postgres'
+
+export default defineConfig({
+  envFile: '.env.ephm',
+  namespace: 'my-prisma-app',
+  beforeApp: [
+    ['pnpm', 'db:migrate:deploy'],
+    ['pnpm', 'db:seed']
+  ],
+  app: {
+    command: 'pnpm',
+    args: ['dev', '--port', '$APP_PORT'],
+    port: { base: 10_000, range: 5000 }
+  },
+  services: [
+    pglite({
+      env: 'DATABASE_URL',
+      port: { base: 16_000, range: 5000 }
+    })
+  ]
+})
+```
 
 ## 5. Add a Package Script
 
@@ -157,5 +185,5 @@ If an explicit port is occupied, startup should fail. If a generated preferred p
 
 - Next.js: pass `--port $APP_PORT` and set callback/site URL env vars in `app.env`.
 - Vite: pass `--host 127.0.0.1 --port $APP_PORT` if the project expects explicit host binding.
-- Prisma or other migration tools: run migrations in the app command or a project-local wrapper script before starting the dev server.
+- Prisma or other migration tools: use `beforeApp` for migration and seed scripts that need generated service env vars.
 - SSL Postgres clients: disable SSL locally or honor `PGSSLMODE=disable` from the PGlite adapter.

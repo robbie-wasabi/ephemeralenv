@@ -12,6 +12,7 @@ export {
 } from './ports.js'
 export type {
   AppConfig,
+  CommandConfig,
   EphemeralConfig,
   EphemeralService,
   PortConfig,

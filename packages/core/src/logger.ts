@@ -20,6 +20,7 @@ export function logStartupSummary(options: {
   envFile?: { path: string; exists: boolean }
   ports: ResolvedPort[]
   services: ServiceStartResult[]
+  beforeAppCommands: string[][]
   appCommand: string[]
   appUrl: string
 }): void {
@@ -64,6 +65,14 @@ export function logStartupSummary(options: {
     }
   }
 
+  if (options.beforeAppCommands.length > 0) {
+    logger.line()
+    logger.line('Before app:')
+    for (const command of options.beforeAppCommands) {
+      logger.line(`  ${quoteCommand(command)}`)
+    }
+  }
+
   logger.line()
   logger.line('App:')
   logger.line(`  command: ${quoteCommand(options.appCommand)}`)
@@ -83,6 +92,6 @@ export function logCleanup(logger: Logger, message: string): void {
   logger.line(message)
 }
 
-function quoteCommand(parts: string[]): string {
+export function quoteCommand(parts: string[]): string {
   return parts.map((part) => (/\s/.test(part) ? JSON.stringify(part) : part)).join(' ')
 }

@@ -31,7 +31,7 @@ pnpm ephemeralenv
 
 Use strict ESM TypeScript with NodeNext resolution. Match the existing style: two-space indentation, single quotes, no semicolons, named exports, and `.js` extensions on relative imports. Keep service adapter behavior deterministic, especially port selection, seed ordering, environment precedence, and cleanup.
 
-Default config files are `ephemeralenv.config.ts`, `.mts`, `.js`, and `.mjs`. Default env files are `.env.ephm` first, then `.env.ephemeral`; explicit `envFile` still wins.
+Default config files are `ephemeralenv.config.ts`, `.mts`, `.js`, and `.mjs`. Default env files are `.env.ephm` first, then `.env.ephemeral`; explicit `envFile` still wins. Use top-level `beforeApp` command tuples for migration and seed steps that must run after services start and before the app starts.
 
 ## Testing Notes
 

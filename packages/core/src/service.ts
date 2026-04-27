@@ -10,9 +10,12 @@ export type AppConfig = {
   env?: Record<string, string>
 }
 
+export type CommandConfig = [command: string, ...args: string[]]
+
 export type EphemeralConfig = {
   envFile?: string
   namespace?: string
+  beforeApp?: CommandConfig[]
   app: AppConfig
   services?: EphemeralService[]
 }

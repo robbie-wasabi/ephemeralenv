@@ -14,6 +14,7 @@ Local QA often depends on a shared database or a slow Docker stack. That makes f
 - MongoDB via `mongodb-memory-server`
 - PostgreSQL-compatible development databases via PGlite and `@electric-sql/pglite-socket`
 - direct seed loading from plain JSON or SQL files
+- `beforeApp` commands for migrations, Prisma seeding, and other setup steps
 - generated `MONGODB_URI` or `DATABASE_URL`
 - idempotent cleanup on app exit, `SIGINT`, `SIGTERM`, or `SIGHUP`
 
@@ -148,6 +149,37 @@ DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:<port>/postgres
 PGSSLMODE=disable
 ```
 
+## Prisma and beforeApp Commands
+
+For Prisma projects, prefer running migrations and seeds through Prisma instead of raw SQL seed files. `beforeApp` commands run after services start and generated env vars such as `DATABASE_URL` are available, but before the app process starts.
+
+```ts
+import { defineConfig } from 'ephemeralenv'
+import { pglite } from 'ephemeralenv-postgres'
+
+export default defineConfig({
+  envFile: '.env.ephm',
+  namespace: 'my-prisma-app',
+  beforeApp: [
+    ['pnpm', 'db:migrate:deploy'],
+    ['pnpm', 'db:seed']
+  ],
+  app: {
+    command: 'pnpm',
+    args: ['dev', '--port', '$APP_PORT'],
+    port: { base: 10_000, range: 5000 }
+  },
+  services: [
+    pglite({
+      env: 'DATABASE_URL',
+      port: { base: 16_000, range: 5000 }
+    })
+  ]
+})
+```
+
+Commands run sequentially, inherit stdio, receive the same runtime env as the app, and stop startup if any command exits nonzero.
+
 ## Running Multiple Environments
 
 Ports are derived from:
@@ -209,7 +241,7 @@ PGlite is not native Postgres. It is excellent for fast local QA, but it does no
 
 `mongodb-memory-server` may download a MongoDB binary on first use. Pin `version` in the adapter config when you want reproducible binary selection.
 
-V1 intentionally avoids ORM-specific migration hooks, multi-service orchestration, recursive seed directories, fixture transforms, Docker, and long-lived persistence.
+V1 intentionally avoids multi-service orchestration, recursive seed directories, fixture transforms, Docker, and long-lived persistence.
 
 ## Troubleshooting
 
@@ -226,4 +258,4 @@ Mongo only reads direct child `*.json` files from `seedDir`. Postgres only reads
 The deterministic preferred port was occupied, so the runner selected a free fallback. Set `APP_PORT` or `DB_PORT` to fail instead of falling back.
 
 **I need Prisma migrations.**
-Run migrations as part of your app command or add a project-local script before `ephemeralenv`. V1 only injects connection strings and runs plain seed files.
+Use `beforeApp` to run scripts such as `pnpm db:migrate:deploy` and `pnpm db:seed` after the database starts and before the app starts.

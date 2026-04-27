@@ -3,10 +3,11 @@ import { loadConfig } from './config.js'
 import { cleanProcessEnv, mergeRuntimeEnv, readEnvFile } from './env.js'
 import { interpolateArray, interpolateRecord } from './interpolate.js'
 import { createCleanup } from './lifecycle.js'
-import { createLogger, logCleanup, logStartupSummary, type Logger } from './logger.js'
+import { createLogger, logCleanup, logStartupSummary, quoteCommand, type Logger } from './logger.js'
 import { createPortResolver } from './ports.js'
+import { runCommand } from './runCommand.js'
 import { spawnApp } from './spawnApp.js'
-import type { ResolvedPort, ServiceContext, ServiceStartResult } from './service.js'
+import type { CommandConfig, ResolvedPort, ServiceContext, ServiceStartResult } from './service.js'
 
 export type RunOptions = {
   cwd?: string
@@ -89,6 +90,7 @@ export async function run(options: RunOptions = {}): Promise<number> {
     const appArgs = interpolateArray(config.app.args, appEnv)
     const appUrl = `http://localhost:${appPort.port}`
     const appCommand = [config.app.command, ...appArgs]
+    const beforeAppCommands = interpolateCommands(config.beforeApp, appEnv)
 
     logStartupSummary({
       logger,
@@ -98,9 +100,26 @@ export async function run(options: RunOptions = {}): Promise<number> {
       envFile: shouldLogEnvFile ? { path: envFile.path, exists: envFile.exists } : undefined,
       ports: selectedPorts,
       services,
+      beforeAppCommands,
       appCommand,
       appUrl
     })
+
+    const cleanupServices = createCleanup(serviceStops)
+    const removeSetupSignalHandlers = installSignalHandlers(cleanupServices, logger)
+
+    try {
+      for (const command of beforeAppCommands) {
+        logger.line(`running beforeApp: ${quoteCommand(command)}`)
+        await runCommand({
+          command,
+          cwd,
+          env: appEnv
+        })
+      }
+    } finally {
+      removeSetupSignalHandlers()
+    }
 
     const app = spawnApp({
       command: config.app.command,
@@ -123,6 +142,10 @@ export async function run(options: RunOptions = {}): Promise<number> {
     await cleanup()
     throw error
   }
+}
+
+function interpolateCommands(commands: CommandConfig[] | undefined, env: Record<string, string>): CommandConfig[] {
+  return (commands ?? []).map((command) => interpolateArray([...command], env) as CommandConfig)
 }
 
 function installSignalHandlers(cleanup: () => Promise<void>, logger: Logger): () => void {
