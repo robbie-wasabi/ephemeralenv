@@ -1,0 +1,32 @@
+{
+  "name": "@ephemeralenv/mongodb",
+  "version": "0.1.0",
+  "description": "MongoDB memory service adapter for ephemeralenv.",
+  "type": "module",
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@ephemeralenv/core": "workspace:*",
+    "mongodb": "^7.2.0",
+    "mongodb-memory-server": "^11.0.1"
+  },
+  "devDependencies": {
+    "@types/node": "^25.6.0",
+    "typescript": "^6.0.3"
+  }
+}

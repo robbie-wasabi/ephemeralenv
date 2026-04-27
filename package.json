@@ -1,0 +1,18 @@
+{
+  "name": "ephemeralenv-monorepo",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@9.11.0",
+  "scripts": {
+    "build": "pnpm -r --filter './packages/**' build",
+    "test": "vitest run",
+    "typecheck": "pnpm -r --filter './packages/**' typecheck",
+    "clean": "pnpm -r --filter './packages/**' clean"
+  },
+  "devDependencies": {
+    "@types/node": "^25.6.0",
+    "tsx": "^4.21.0",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.5"
+  }
+}

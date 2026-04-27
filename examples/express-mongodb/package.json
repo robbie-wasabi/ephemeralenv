@@ -1,0 +1,18 @@
+{
+  "name": "express-mongodb-example",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx src/server.ts",
+    "ephemeralenv": "ephemeralenv --config ephemeralenv.config.ts"
+  },
+  "dependencies": {
+    "@ephemeralenv/core": "workspace:*",
+    "@ephemeralenv/mongodb": "workspace:*",
+    "mongodb": "^7.2.0"
+  },
+  "devDependencies": {
+    "@types/node": "^25.6.0",
+    "tsx": "^4.21.0"
+  }
+}

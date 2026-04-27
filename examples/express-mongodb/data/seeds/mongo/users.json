@@ -1,0 +1,14 @@
+[
+  {
+    "_id": { "$oid": "6877e615628074e008b7628f" },
+    "email": "admin@example.com",
+    "name": "Admin User",
+    "createdAt": { "$date": "2026-01-01T00:00:00.000Z" }
+  },
+  {
+    "_id": { "$oid": "6877e615628074e008b7630a" },
+    "email": "qa@example.com",
+    "name": "QA User",
+    "createdAt": { "$date": "2026-01-02T00:00:00.000Z" }
+  }
+]

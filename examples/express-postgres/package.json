@@ -1,0 +1,19 @@
+{
+  "name": "express-postgres-example",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx src/server.ts",
+    "ephemeralenv": "ephemeralenv --config ephemeralenv.config.ts"
+  },
+  "dependencies": {
+    "@ephemeralenv/core": "workspace:*",
+    "@ephemeralenv/postgres": "workspace:*",
+    "pg": "^8.20.0"
+  },
+  "devDependencies": {
+    "@types/node": "^25.6.0",
+    "@types/pg": "^8.20.0",
+    "tsx": "^4.21.0"
+  }
+}

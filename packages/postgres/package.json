@@ -1,0 +1,32 @@
+{
+  "name": "@ephemeralenv/postgres",
+  "version": "0.1.0",
+  "description": "PGlite service adapter for ephemeralenv.",
+  "type": "module",
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@electric-sql/pglite": "^0.4.5",
+    "@electric-sql/pglite-socket": "^0.1.5",
+    "@ephemeralenv/core": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^25.6.0",
+    "typescript": "^6.0.3"
+  }
+}
