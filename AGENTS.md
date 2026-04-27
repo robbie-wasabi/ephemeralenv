@@ -4,9 +4,9 @@
 
 This is a pnpm TypeScript monorepo for `ephemeralenv`, a disposable local QA environment runner. Package source lives under `packages/*/src`, with public entry points in each package's `src/index.ts`.
 
-- `packages/core`: CLI, config loading, lifecycle, environment merging, port resolution, and app spawning.
-- `packages/postgres`: PGlite/Postgres adapter and SQL seeding helpers.
-- `packages/mongodb`: MongoDB memory-server adapter and JSON seeding helpers.
+- `packages/core`: published as `ephemeralenv`; CLI, config loading, lifecycle, environment merging, port resolution, and app spawning.
+- `packages/postgres`: published as `ephemeralenv-postgres`; PGlite/Postgres adapter and SQL seeding helpers.
+- `packages/mongodb`: published as `ephemeralenv-mongodb`; MongoDB memory-server adapter and JSON seeding helpers.
 - `packages/*/test`: Vitest unit tests, named `*.test.ts`.
 - `examples/express-mongodb` and `examples/express-postgres`: runnable integration examples with seed data under `data/seeds`.
 - `dist` directories are generated build output.
@@ -32,7 +32,11 @@ Vitest is the test runner. Place tests beside each package in `packages/<name>/t
 
 ## Commit & Pull Request Guidelines
 
-Git history is not available in this checkout, so use concise imperative commit subjects such as `Add postgres seed ordering test` or `Fix cleanup idempotency`. Pull requests should include a short summary, the affected packages, test results (`pnpm build`, `pnpm test`, and any relevant example run), and linked issues when applicable. Include screenshots or logs only when changing CLI output or example behavior.
+Use concise imperative commit subjects such as `Add postgres seed ordering test` or `Use unscoped npm package names`. Pull requests should include a short summary, the affected packages, test results (`pnpm build`, `pnpm test`, and any relevant example run), and linked issues when applicable. Include screenshots or logs only when changing CLI output or example behavior.
+
+## Release Notes
+
+The npm packages are intentionally unscoped: `ephemeralenv`, `ephemeralenv-mongodb`, and `ephemeralenv-postgres`. Publishing is handled by `.github/workflows/publish.yml` when a GitHub release is created; the workflow expects the `NPM_TOKEN` repository secret. Keep package versions aligned across all three packages for each release.
 
 ## Security & Configuration Tips
 

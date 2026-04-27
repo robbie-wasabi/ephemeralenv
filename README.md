@@ -19,21 +19,36 @@ Local QA often depends on a shared database or a slow Docker stack. That makes f
 
 ## Install
 
+Install the core package for the CLI and config helpers:
+
 ```bash
 pnpm add -D ephemeralenv
 ```
 
-For MongoDB:
+Add one or more service adapters:
 
 ```bash
 pnpm add -D ephemeralenv-mongodb
-```
-
-For PGlite/Postgres:
-
-```bash
 pnpm add -D ephemeralenv-postgres
 ```
+
+Published packages:
+
+- `ephemeralenv`: core API, config loader, port resolver, runner, and `ephemeralenv` CLI.
+- `ephemeralenv-mongodb`: MongoDB memory-server adapter and JSON seed loading.
+- `ephemeralenv-postgres`: PGlite/Postgres adapter and SQL seed loading.
+
+## CLI
+
+The core package exposes the `ephemeralenv` binary:
+
+```bash
+pnpm exec ephemeralenv
+pnpm exec ephemeralenv --config ephemeralenv.config.ts
+pnpm exec ephemeralenv --help
+```
+
+By default, the CLI looks for `ephemeralenv.config.ts`, `.mts`, `.js`, or `.mjs` in the current working directory.
 
 ## Quick Start: MongoDB
 
@@ -88,7 +103,7 @@ Each file must contain a JSON array. Mongo EJSON is supported:
 Run it:
 
 ```bash
-pnpm ephemeralenv
+pnpm exec ephemeralenv
 ```
 
 ## Quick Start: Postgres/PGlite
@@ -144,14 +159,14 @@ ${namespace}:${EPHEMERAL_ENV_ID || process.cwd()}:${portName}
 Use an explicit id when running multiple branches or worktrees:
 
 ```bash
-EPHEMERAL_ENV_ID=feature-a pnpm ephemeralenv
-EPHEMERAL_ENV_ID=feature-b pnpm ephemeralenv
+EPHEMERAL_ENV_ID=feature-a pnpm exec ephemeralenv
+EPHEMERAL_ENV_ID=feature-b pnpm exec ephemeralenv
 ```
 
 You can also force ports:
 
 ```bash
-APP_PORT=3100 DB_PORT=3101 pnpm ephemeralenv
+APP_PORT=3100 DB_PORT=3101 pnpm exec ephemeralenv
 ```
 
 If an explicit port is occupied, startup fails. If a deterministic generated port is occupied, `ephemeralenv` falls back to an OS-selected free port and prints the fallback.
