@@ -4,6 +4,22 @@
   "description": "MongoDB memory service adapter for ephemeralenv.",
   "type": "module",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/robbie-wasabi/ephemeralenv.git",
+    "directory": "packages/mongodb"
+  },
+  "homepage": "https://github.com/robbie-wasabi/ephemeralenv#readme",
+  "bugs": {
+    "url": "https://github.com/robbie-wasabi/ephemeralenv/issues"
+  },
+  "keywords": [
+    "mongodb",
+    "mongodb-memory-server",
+    "local-development",
+    "qa",
+    "ephemeral"
+  ],
   "publishConfig": {
     "access": "public",
     "provenance": true

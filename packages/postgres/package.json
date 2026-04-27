@@ -4,6 +4,22 @@
   "description": "PGlite service adapter for ephemeralenv.",
   "type": "module",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/robbie-wasabi/ephemeralenv.git",
+    "directory": "packages/postgres"
+  },
+  "homepage": "https://github.com/robbie-wasabi/ephemeralenv#readme",
+  "bugs": {
+    "url": "https://github.com/robbie-wasabi/ephemeralenv/issues"
+  },
+  "keywords": [
+    "postgres",
+    "pglite",
+    "local-development",
+    "qa",
+    "ephemeral"
+  ],
   "publishConfig": {
     "access": "public",
     "provenance": true
