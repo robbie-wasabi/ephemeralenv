@@ -23,10 +23,10 @@ importers:
 
   examples/express-mongodb:
     dependencies:
-      '@ephemeralenv/core':
+      ephemeralenv:
         specifier: workspace:*
         version: link:../../packages/core
-      '@ephemeralenv/mongodb':
+      ephemeralenv-mongodb:
         specifier: workspace:*
         version: link:../../packages/mongodb
       mongodb:
@@ -42,10 +42,10 @@ importers:
 
   examples/express-postgres:
     dependencies:
-      '@ephemeralenv/core':
+      ephemeralenv:
         specifier: workspace:*
         version: link:../../packages/core
-      '@ephemeralenv/postgres':
+      ephemeralenv-postgres:
         specifier: workspace:*
         version: link:../../packages/postgres
       pg:
@@ -80,7 +80,7 @@ importers:
 
   packages/mongodb:
     dependencies:
-      '@ephemeralenv/core':
+      ephemeralenv:
         specifier: workspace:*
         version: link:../core
       mongodb:
@@ -105,7 +105,7 @@ importers:
       '@electric-sql/pglite-socket':
         specifier: ^0.1.5
         version: 0.1.5(@electric-sql/pglite@0.4.5)
-      '@ephemeralenv/core':
+      ephemeralenv:
         specifier: workspace:*
         version: link:../core
     devDependencies:

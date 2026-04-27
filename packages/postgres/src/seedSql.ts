@@ -2,7 +2,7 @@ import { existsSync } from 'node:fs'
 import { readdir, readFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
 import type { PGlite } from '@electric-sql/pglite'
-import type { SeedSummary } from '@ephemeralenv/core'
+import type { SeedSummary } from 'ephemeralenv'
 
 export type SqlSeedOptions = {
   db: PGlite

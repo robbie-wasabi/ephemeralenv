@@ -2,7 +2,7 @@ import { existsSync } from 'node:fs'
 import { readdir, readFile } from 'node:fs/promises'
 import { basename, resolve } from 'node:path'
 import { BSON, MongoClient } from 'mongodb'
-import type { SeedSummary } from '@ephemeralenv/core'
+import type { SeedSummary } from 'ephemeralenv'
 
 export type MongoSeedOptions = {
   uri: string

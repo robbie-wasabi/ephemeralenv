@@ -1,5 +1,5 @@
 {
-  "name": "@ephemeralenv/core",
+  "name": "ephemeralenv",
   "version": "0.1.0",
   "description": "Core runner and CLI for disposable local QA environments.",
   "type": "module",

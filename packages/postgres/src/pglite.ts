@@ -1,6 +1,6 @@
 import { PGlite } from '@electric-sql/pglite'
 import { PGLiteSocketServer } from '@electric-sql/pglite-socket'
-import type { EphemeralService, PortConfig } from '@ephemeralenv/core'
+import type { EphemeralService, PortConfig } from 'ephemeralenv'
 import { seedSql } from './seedSql.js'
 
 export type PGliteOptions = {

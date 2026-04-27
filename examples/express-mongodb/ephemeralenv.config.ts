@@ -1,5 +1,5 @@
-import { defineConfig } from '@ephemeralenv/core'
-import { mongoMemory } from '@ephemeralenv/mongodb'
+import { defineConfig } from 'ephemeralenv'
+import { mongoMemory } from 'ephemeralenv-mongodb'
 
 export default defineConfig({
   envFile: '.env.ephm',

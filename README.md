@@ -20,19 +20,19 @@ Local QA often depends on a shared database or a slow Docker stack. That makes f
 ## Install
 
 ```bash
-pnpm add -D @ephemeralenv/core
+pnpm add -D ephemeralenv
 ```
 
 For MongoDB:
 
 ```bash
-pnpm add -D @ephemeralenv/mongodb
+pnpm add -D ephemeralenv-mongodb
 ```
 
 For PGlite/Postgres:
 
 ```bash
-pnpm add -D @ephemeralenv/postgres
+pnpm add -D ephemeralenv-postgres
 ```
 
 ## Quick Start: MongoDB
@@ -40,8 +40,8 @@ pnpm add -D @ephemeralenv/postgres
 Create `ephemeralenv.config.ts`:
 
 ```ts
-import { defineConfig } from '@ephemeralenv/core'
-import { mongoMemory } from '@ephemeralenv/mongodb'
+import { defineConfig } from 'ephemeralenv'
+import { mongoMemory } from 'ephemeralenv-mongodb'
 
 export default defineConfig({
   envFile: '.env.ephm',
@@ -96,8 +96,8 @@ pnpm ephemeralenv
 Create `ephemeralenv.config.ts`:
 
 ```ts
-import { defineConfig } from '@ephemeralenv/core'
-import { pglite } from '@ephemeralenv/postgres'
+import { defineConfig } from 'ephemeralenv'
+import { pglite } from 'ephemeralenv-postgres'
 
 export default defineConfig({
   envFile: '.env.ephm',

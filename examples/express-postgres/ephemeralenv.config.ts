@@ -1,5 +1,5 @@
-import { defineConfig } from '@ephemeralenv/core'
-import { pglite } from '@ephemeralenv/postgres'
+import { defineConfig } from 'ephemeralenv'
+import { pglite } from 'ephemeralenv-postgres'
 
 export default defineConfig({
   envFile: '.env.ephm',

@@ -1,5 +1,5 @@
 {
-  "name": "@ephemeralenv/postgres",
+  "name": "ephemeralenv-postgres",
   "version": "0.1.0",
   "description": "PGlite service adapter for ephemeralenv.",
   "type": "module",
@@ -38,7 +38,7 @@
   "dependencies": {
     "@electric-sql/pglite": "^0.4.5",
     "@electric-sql/pglite-socket": "^0.1.5",
-    "@ephemeralenv/core": "workspace:*"
+    "ephemeralenv": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^25.6.0",

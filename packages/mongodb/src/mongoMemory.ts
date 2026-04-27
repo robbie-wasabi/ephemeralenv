@@ -1,5 +1,5 @@
 import { MongoMemoryServer } from 'mongodb-memory-server'
-import type { EphemeralService, PortConfig } from '@ephemeralenv/core'
+import type { EphemeralService, PortConfig } from 'ephemeralenv'
 import { seedMongo } from './seedMongo.js'
 
 export type MongoMemoryOptions = {

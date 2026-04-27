@@ -7,8 +7,8 @@
     "ephemeralenv": "ephemeralenv --config ephemeralenv.config.ts"
   },
   "dependencies": {
-    "@ephemeralenv/core": "workspace:*",
-    "@ephemeralenv/mongodb": "workspace:*",
+    "ephemeralenv": "workspace:*",
+    "ephemeralenv-mongodb": "workspace:*",
     "mongodb": "^7.2.0"
   },
   "devDependencies": {

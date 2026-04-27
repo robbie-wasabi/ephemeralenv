@@ -7,8 +7,8 @@
     "ephemeralenv": "ephemeralenv --config ephemeralenv.config.ts"
   },
   "dependencies": {
-    "@ephemeralenv/core": "workspace:*",
-    "@ephemeralenv/postgres": "workspace:*",
+    "ephemeralenv": "workspace:*",
+    "ephemeralenv-postgres": "workspace:*",
     "pg": "^8.20.0"
   },
   "devDependencies": {

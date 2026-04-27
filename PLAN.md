@@ -93,8 +93,8 @@ Important caveat: PGlite is not native Postgres. It is good for fast local QA, b
 Keep config boring. Users should not need to learn a framework or custom plugin syntax.
 
 ```ts
-import { defineConfig } from '@ephemeralenv/core'
-import { mongoMemory } from '@ephemeralenv/mongodb'
+import { defineConfig } from 'ephemeralenv'
+import { mongoMemory } from 'ephemeralenv-mongodb'
 
 export default defineConfig({
   envFile: '.env.ephm',
@@ -120,8 +120,8 @@ export default defineConfig({
 Postgres variant:
 
 ```ts
-import { defineConfig } from '@ephemeralenv/core'
-import { pglite } from '@ephemeralenv/postgres'
+import { defineConfig } from 'ephemeralenv'
+import { pglite } from 'ephemeralenv-postgres'
 
 export default defineConfig({
   envFile: '.env.ephm',
@@ -401,14 +401,14 @@ ephemeralenv/
 
 V1 packages:
 
-- `@ephemeralenv/core`
-- `@ephemeralenv/mongodb`
-- `@ephemeralenv/postgres`
+- `ephemeralenv`
+- `ephemeralenv-mongodb`
+- `ephemeralenv-postgres`
 
 The CLI can live in core:
 
 ```bash
-pnpm add -D @ephemeralenv/core @ephemeralenv/mongodb
+pnpm add -D ephemeralenv ephemeralenv-mongodb
 pnpm ephemeralenv
 ```
 
@@ -860,15 +860,15 @@ Mitigation:
 V1 is successful when a developer can add this to an existing app in under 15 minutes:
 
 ```bash
-pnpm add -D @ephemeralenv/core @ephemeralenv/mongodb
+pnpm add -D ephemeralenv ephemeralenv-mongodb
 ```
 
 Add:
 
 ```ts
 // ephemeralenv.config.ts
-import { defineConfig } from '@ephemeralenv/core'
-import { mongoMemory } from '@ephemeralenv/mongodb'
+import { defineConfig } from 'ephemeralenv'
+import { mongoMemory } from 'ephemeralenv-mongodb'
 
 export default defineConfig({
   envFile: '.env.ephm',
