@@ -21,8 +21,7 @@
     "ephemeral"
   ],
   "publishConfig": {
-    "access": "public",
-    "provenance": true
+    "access": "public"
   },
   "bin": {
     "ephemeralenv": "./dist/cli.js"
