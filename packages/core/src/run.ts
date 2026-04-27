@@ -5,7 +5,7 @@ import { interpolateArray, interpolateRecord } from './interpolate.js'
 import { createCleanup } from './lifecycle.js'
 import { createLogger, logCleanup, logStartupSummary, quoteCommand, type Logger } from './logger.js'
 import { createPortResolver } from './ports.js'
-import { runCommand } from './runCommand.js'
+import { spawnCommand } from './runCommand.js'
 import { spawnApp } from './spawnApp.js'
 import type { CommandConfig, ResolvedPort, ServiceContext, ServiceStartResult } from './service.js'
 
@@ -91,6 +91,7 @@ export async function run(options: RunOptions = {}): Promise<number> {
     const appUrl = `http://localhost:${appPort.port}`
     const appCommand = [config.app.command, ...appArgs]
     const beforeAppCommands = interpolateCommands(config.beforeApp, appEnv)
+    const warnings = serviceEnvOverrideWarnings(generatedServiceEnv, processEnv)
 
     logStartupSummary({
       logger,
@@ -98,6 +99,7 @@ export async function run(options: RunOptions = {}): Promise<number> {
       environmentId,
       configPath: loaded.path,
       envFile: shouldLogEnvFile ? { path: envFile.path, exists: envFile.exists } : undefined,
+      warnings,
       ports: selectedPorts,
       services,
       beforeAppCommands,
@@ -105,17 +107,30 @@ export async function run(options: RunOptions = {}): Promise<number> {
       appUrl
     })
 
-    const cleanupServices = createCleanup(serviceStops)
-    const removeSetupSignalHandlers = installSignalHandlers(cleanupServices, logger)
+    let activeSetupCommandStop: (() => Promise<void>) | undefined
+    const cleanupSetup = createCleanup([
+      async () => {
+        await activeSetupCommandStop?.()
+      },
+      ...serviceStops
+    ])
+    const removeSetupSignalHandlers = installSignalHandlers(cleanupSetup, logger)
 
     try {
       for (const command of beforeAppCommands) {
         logger.line(`running beforeApp: ${quoteCommand(command)}`)
-        await runCommand({
+        const setupCommand = spawnCommand({
           command,
           cwd,
           env: appEnv
         })
+        activeSetupCommandStop = setupCommand.stop
+
+        try {
+          await setupCommand.exit
+        } finally {
+          activeSetupCommandStop = undefined
+        }
       }
     } finally {
       removeSetupSignalHandlers()
@@ -146,6 +161,12 @@ export async function run(options: RunOptions = {}): Promise<number> {
 
 function interpolateCommands(commands: CommandConfig[] | undefined, env: Record<string, string>): CommandConfig[] {
   return (commands ?? []).map((command) => interpolateArray([...command], env) as CommandConfig)
+}
+
+function serviceEnvOverrideWarnings(generatedServiceEnv: Record<string, string>, processEnv: Record<string, string>): string[] {
+  return Object.entries(generatedServiceEnv)
+    .filter(([key, value]) => processEnv[key] !== undefined && processEnv[key] !== value)
+    .map(([key]) => `existing process env ${key} overrides generated service value`)
 }
 
 function installSignalHandlers(cleanup: () => Promise<void>, logger: Logger): () => void {

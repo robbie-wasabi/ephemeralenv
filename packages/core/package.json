@@ -24,7 +24,7 @@
     "access": "public"
   },
   "bin": {
-    "ephemeralenv": "./dist/cli.js"
+    "ephemeralenv": "./bin/ephemeralenv.js"
   },
   "exports": {
     ".": {
@@ -32,7 +32,7 @@
       "default": "./dist/index.js"
     }
   },
-  "files": ["dist"],
+  "files": ["bin", "dist"],
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",

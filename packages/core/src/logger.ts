@@ -18,6 +18,7 @@ export function logStartupSummary(options: {
   environmentId: string
   configPath: string
   envFile?: { path: string; exists: boolean }
+  warnings?: string[]
   ports: ResolvedPort[]
   services: ServiceStartResult[]
   beforeAppCommands: string[][]
@@ -35,6 +36,14 @@ export function logStartupSummary(options: {
 
   if (options.envFile) {
     logger.line(`  env file: ${options.envFile.exists ? options.envFile.path : `${options.envFile.path} (not found)`}`)
+  }
+
+  if (options.warnings && options.warnings.length > 0) {
+    logger.line()
+    logger.line('Warnings:')
+    for (const warning of options.warnings) {
+      logger.line(`  ${warning}`)
+    }
   }
 
   logger.line()
