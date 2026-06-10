@@ -203,6 +203,21 @@ APP_PORT=3100 DB_PORT=3101 pnpm exec ephemeralenv
 
 If an explicit port is occupied, startup fails. If a deterministic generated port is occupied, `ephemeralenv` falls back to an OS-selected free port and prints the fallback.
 
+### Capping Concurrency
+
+Each environment runs a full app process plus a database, so a handful of concurrent environments can exhaust memory. Set `EPHEMERAL_ENV_MAX_PROCESSES` to cap how many run at once on a machine — it is a machine property, so a shell profile is the natural home:
+
+```bash
+# ~/.zshrc or ~/.bashrc
+export EPHEMERAL_ENV_MAX_PROCESSES=3
+```
+
+When the limit is reached, new runs fail fast and list the active environments. Slots are tracked as PID files in `~/.ephemeralenv/slots` (override the location with `EPHEMERAL_ENV_SLOT_DIR`); slots held by crashed processes are reclaimed automatically. Override per shell when needed:
+
+```bash
+EPHEMERAL_ENV_MAX_PROCESSES=5 pnpm exec ephemeralenv
+```
+
 ## Environment Variables
 
 Runtime env is built from:

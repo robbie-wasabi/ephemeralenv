@@ -6,6 +6,7 @@ import { createCleanup } from './lifecycle.js'
 import { createLogger, logCleanup, logStartupSummary, quoteCommand, type Logger } from './logger.js'
 import { createPortResolver } from './ports.js'
 import { spawnCommand, type SpawnedCommand } from './runCommand.js'
+import { acquireEnvironmentSlot } from './slots.js'
 import { spawnApp } from './spawnApp.js'
 import type { CommandConfig, ResolvedPort, ServiceContext, ServiceStartResult } from './service.js'
 
@@ -30,39 +31,40 @@ export async function run(options: RunOptions = {}): Promise<number> {
   }
   const environmentKey = baseEnv.EPHEMERAL_ENV_ID || cwd
   const environmentId = `${namespace}:${environmentKey}`
+  const slot = await acquireEnvironmentSlot({ env: baseEnv, environmentId })
   const resolvePort = createPortResolver({
     namespace,
     environmentKey,
     env: baseEnv
   })
   const selectedPorts: ResolvedPort[] = []
-  const appPort = await resolvePort('app', config.app.port, {
-    envVar: 'APP_PORT',
-    defaultBase: 10_000,
-    defaultRange: 5000
-  })
-  selectedPorts.push(appPort)
-
   const services: ServiceStartResult[] = []
   const serviceStops: Array<() => Promise<void>> = []
   const generatedServiceEnv: Record<string, string> = {}
 
-  const serviceContext: ServiceContext = {
-    cwd,
-    namespace,
-    environmentId,
-    env: {
-      ...baseEnv,
-      APP_PORT: String(appPort.port)
-    },
-    resolvePort: async (name, portConfig, resolverOptions) => {
-      const resolved = await resolvePort(name, portConfig, resolverOptions)
-      selectedPorts.push(resolved)
-      return resolved
-    }
-  }
-
   try {
+    const appPort = await resolvePort('app', config.app.port, {
+      envVar: 'APP_PORT',
+      defaultBase: 10_000,
+      defaultRange: 5000
+    })
+    selectedPorts.push(appPort)
+
+    const serviceContext: ServiceContext = {
+      cwd,
+      namespace,
+      environmentId,
+      env: {
+        ...baseEnv,
+        APP_PORT: String(appPort.port)
+      },
+      resolvePort: async (name, portConfig, resolverOptions) => {
+        const resolved = await resolvePort(name, portConfig, resolverOptions)
+        selectedPorts.push(resolved)
+        return resolved
+      }
+    }
+
     for (const service of config.services ?? []) {
       const started = await service.start(serviceContext)
       services.push(started)
@@ -109,6 +111,7 @@ export async function run(options: RunOptions = {}): Promise<number> {
 
     let activeSetupCommand: SpawnedCommand | undefined
     const cleanupSetup = createCleanup([
+      slot.release,
       ...serviceStops,
       async () => {
         await activeSetupCommand?.stop()
@@ -144,7 +147,7 @@ export async function run(options: RunOptions = {}): Promise<number> {
       cwd,
       env: appEnv
     })
-    const cleanup = createCleanup([...serviceStops, app.stop])
+    const cleanup = createCleanup([slot.release, ...serviceStops, app.stop])
     const removeSignalHandlers = installSignalHandlers(cleanup, logger, app.forceKill)
 
     try {
@@ -155,7 +158,7 @@ export async function run(options: RunOptions = {}): Promise<number> {
       removeSignalHandlers()
     }
   } catch (error) {
-    const cleanup = createCleanup(serviceStops)
+    const cleanup = createCleanup([slot.release, ...serviceStops])
     await cleanup()
     throw error
   }

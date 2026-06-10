@@ -1,19 +1,22 @@
-import { mkdtemp, readFile, writeFile } from 'node:fs/promises'
+import { mkdtemp, readdir, readFile, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, describe, expect, test } from 'vitest'
 import { run } from '../src/run.js'
 
 const OVERRIDE_ENV = 'EPHEMERALENV_TEST_OVERRIDE'
+const MUTATED_ENV_VARS = [OVERRIDE_ENV, 'EPHEMERAL_ENV_MAX_PROCESSES', 'EPHEMERAL_ENV_SLOT_DIR'] as const
 
 describe('run', () => {
-  const originalOverride = process.env[OVERRIDE_ENV]
+  const originalEnv = Object.fromEntries(MUTATED_ENV_VARS.map((name) => [name, process.env[name]]))
 
   afterEach(() => {
-    if (originalOverride === undefined) {
-      delete process.env[OVERRIDE_ENV]
-    } else {
-      process.env[OVERRIDE_ENV] = originalOverride
+    for (const name of MUTATED_ENV_VARS) {
+      if (originalEnv[name] === undefined) {
+        delete process.env[name]
+      } else {
+        process.env[name] = originalEnv[name]
+      }
     }
   })
 
@@ -44,7 +47,85 @@ describe('run', () => {
     expect(lines).toContain('Warnings:')
     expect(lines).toContain(`  existing process env ${OVERRIDE_ENV} overrides generated service value`)
   })
+
+  test('fails fast when EPHEMERAL_ENV_MAX_PROCESSES slots are all taken', async () => {
+    const cwd = await mkdtemp(join(tmpdir(), 'ephemeralenv-run-'))
+    const slotDir = await mkdtemp(join(tmpdir(), 'ephemeralenv-run-slots-'))
+    const configPath = join(cwd, 'ephemeralenv.config.mjs')
+
+    await writeFile(configPath, minimalConfigSource())
+    await writeFile(join(slotDir, 'slot-0'), JSON.stringify({ pid: process.pid, environmentId: 'other-env' }))
+
+    process.env.EPHEMERAL_ENV_MAX_PROCESSES = '1'
+    process.env.EPHEMERAL_ENV_SLOT_DIR = slotDir
+
+    await expect(run({ cwd, configPath, logger: { line() {} } })).rejects.toThrow(/EPHEMERAL_ENV_MAX_PROCESSES.*other-env/)
+  })
+
+  test('claims a slot for the run and releases it on exit', async () => {
+    const cwd = await mkdtemp(join(tmpdir(), 'ephemeralenv-run-'))
+    const slotDir = await mkdtemp(join(tmpdir(), 'ephemeralenv-run-slots-'))
+    const configPath = join(cwd, 'ephemeralenv.config.mjs')
+
+    await writeFile(configPath, minimalConfigSource())
+
+    process.env.EPHEMERAL_ENV_MAX_PROCESSES = '1'
+    process.env.EPHEMERAL_ENV_SLOT_DIR = slotDir
+
+    const exitCode = await run({ cwd, configPath, logger: { line() {} } })
+
+    expect(exitCode).toBe(0)
+    await expect(readdir(slotDir)).resolves.toEqual([])
+  })
+
+  test('releases the slot when startup fails', async () => {
+    const cwd = await mkdtemp(join(tmpdir(), 'ephemeralenv-run-'))
+    const slotDir = await mkdtemp(join(tmpdir(), 'ephemeralenv-run-slots-'))
+    const configPath = join(cwd, 'ephemeralenv.config.mjs')
+
+    await writeFile(configPath, failingServiceConfigSource())
+
+    process.env.EPHEMERAL_ENV_MAX_PROCESSES = '1'
+    process.env.EPHEMERAL_ENV_SLOT_DIR = slotDir
+
+    await expect(run({ cwd, configPath, logger: { line() {} } })).rejects.toThrow('service exploded')
+    await expect(readdir(slotDir)).resolves.toEqual([])
+  })
 })
+
+function minimalConfigSource(): string {
+  return `
+    export default {
+      namespace: 'run-test',
+      app: {
+        command: ${JSON.stringify(process.execPath)},
+        args: ['-e', ''],
+        port: { base: 12_000, range: 5000 }
+      }
+    }
+  `
+}
+
+function failingServiceConfigSource(): string {
+  return `
+    export default {
+      namespace: 'run-test',
+      app: {
+        command: ${JSON.stringify(process.execPath)},
+        args: ['-e', ''],
+        port: { base: 12_000, range: 5000 }
+      },
+      services: [
+        {
+          name: 'Broken service',
+          async start() {
+            throw new Error('service exploded')
+          }
+        }
+      ]
+    }
+  `
+}
 
 function configSource(options: { logPath: string }): string {
   const beforeAppScript = `

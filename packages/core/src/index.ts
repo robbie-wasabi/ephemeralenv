@@ -10,6 +10,15 @@ export {
   stableHash,
   PortUnavailableError
 } from './ports.js'
+export {
+  acquireEnvironmentSlot,
+  acquireSlot,
+  defaultSlotDir,
+  parseMaxProcesses,
+  SlotLimitError,
+  type EnvironmentSlot,
+  type SlotHolder
+} from './slots.js'
 export type {
   AppConfig,
   CommandConfig,
