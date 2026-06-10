@@ -10,9 +10,10 @@ Usage:
   ephemeralenv [--config path]
 
 Environment:
-  EPHEMERAL_ENV_ID  Stable id used for deterministic ports.
-  APP_PORT          Explicit app port.
-  DB_PORT           Explicit database service port.
+  EPHEMERAL_ENV_ID    Stable id used for deterministic ports.
+  EPHEMERAL_ENV_MAX_PROCESSES  Maximum concurrent environments on this machine.
+  APP_PORT            Explicit app port.
+  DB_PORT             Explicit database service port.
 `)
   process.exit(0)
 }
