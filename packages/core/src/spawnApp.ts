@@ -1,9 +1,11 @@
 import { spawn, type ChildProcess } from 'node:child_process'
+import { killTree, stopChild, usesProcessGroups } from './stopChild.js'
 
 export type SpawnedApp = {
   child: ChildProcess
   exit: Promise<number>
   stop: () => Promise<void>
+  forceKill: () => void
 }
 
 export function spawnApp(options: {
@@ -15,13 +17,17 @@ export function spawnApp(options: {
   const child = spawn(options.command, options.args, {
     cwd: options.cwd,
     env: options.env,
-    stdio: 'inherit'
+    stdio: 'inherit',
+    detached: usesProcessGroups
   })
 
   let settled = false
 
   const exit = new Promise<number>((resolve, reject) => {
-    child.once('error', reject)
+    child.once('error', (error) => {
+      settled = true
+      reject(error)
+    })
     child.once('exit', (code, signal) => {
       settled = true
       if (typeof code === 'number') {
@@ -32,29 +38,23 @@ export function spawnApp(options: {
       resolve(signalToExitCode(signal))
     })
   })
+  const exited = exit.then(
+    () => undefined,
+    () => undefined
+  )
 
   return {
     child,
     exit,
+    forceKill() {
+      killTree(child, 'SIGKILL')
+    },
     async stop() {
-      if (settled || child.exitCode !== null || child.killed) {
+      if (settled) {
         return
       }
 
-      await new Promise<void>((resolve) => {
-        const killTimer = setTimeout(() => {
-          if (!settled && child.exitCode === null) {
-            child.kill('SIGKILL')
-          }
-        }, 5000)
-
-        child.once('exit', () => {
-          clearTimeout(killTimer)
-          resolve()
-        })
-
-        child.kill('SIGTERM')
-      })
+      await stopChild(child, exited)
     }
   }
 }

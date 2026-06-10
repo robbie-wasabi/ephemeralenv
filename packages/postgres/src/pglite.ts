@@ -27,18 +27,24 @@ export function pglite(options: PGliteOptions): EphemeralService {
         defaultRange: 5000
       })
       const db = await PGlite.create()
-      const seeded = await seedSql({
-        db,
-        cwd: ctx.cwd,
-        sqlDir: options.sqlDir
-      })
+      let seeded: Awaited<ReturnType<typeof seedSql>>
       const server = new PGLiteSocketServer({
         db,
         host: HOST,
         port: resolvedPort.port
       })
 
-      await server.start()
+      try {
+        seeded = await seedSql({
+          db,
+          cwd: ctx.cwd,
+          sqlDir: options.sqlDir
+        })
+        await server.start()
+      } catch (error) {
+        await db.close().catch(() => undefined)
+        throw error
+      }
 
       const url = `postgresql://${USER}:${PASSWORD}@${HOST}:${resolvedPort.port}/${DATABASE}`
 

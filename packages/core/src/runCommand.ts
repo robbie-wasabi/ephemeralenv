@@ -1,12 +1,12 @@
 import { spawn } from 'node:child_process'
 import { quoteCommand } from './logger.js'
 import type { CommandConfig } from './service.js'
-
-const COMMAND_STOP_TIMEOUT_MS = 5000
+import { killTree, stopChild, usesProcessGroups } from './stopChild.js'
 
 export type SpawnedCommand = {
   exit: Promise<void>
   stop: () => Promise<void>
+  forceKill: () => void
 }
 
 export function spawnCommand(options: {
@@ -23,7 +23,8 @@ export function spawnCommand(options: {
   const child = spawn(command, args, {
     cwd: options.cwd,
     env: options.env,
-    stdio: 'inherit'
+    stdio: 'inherit',
+    detached: usesProcessGroups
   })
 
   let settled = false
@@ -44,30 +45,24 @@ export function spawnCommand(options: {
       reject(new Error(`Command failed: ${quoteCommand(options.command)} (${formatExit(code, signal)})`))
     })
   })
+  const exited = exit.then(
+    () => undefined,
+    () => undefined
+  )
 
   return {
     exit,
+    forceKill() {
+      stopping = true
+      killTree(child, 'SIGKILL')
+    },
     async stop() {
-      if (settled || child.exitCode !== null || child.killed) {
+      if (settled) {
         return
       }
 
       stopping = true
-
-      await new Promise<void>((resolve) => {
-        const killTimer = setTimeout(() => {
-          if (!settled && child.exitCode === null) {
-            child.kill('SIGKILL')
-          }
-        }, COMMAND_STOP_TIMEOUT_MS)
-
-        child.once('exit', () => {
-          clearTimeout(killTimer)
-          resolve()
-        })
-
-        child.kill('SIGTERM')
-      })
+      await stopChild(child, exited)
     }
   }
 }

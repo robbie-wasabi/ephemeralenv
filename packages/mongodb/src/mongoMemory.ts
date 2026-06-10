@@ -1,5 +1,5 @@
 import { MongoMemoryServer } from 'mongodb-memory-server'
-import type { EphemeralService, PortConfig } from 'ephemeralenv'
+import type { EphemeralService, PortConfig, SeedSummary } from 'ephemeralenv'
 import { seedMongo } from './seedMongo.js'
 
 export type MongoMemoryOptions = {
@@ -29,11 +29,18 @@ export function mongoMemory(options: MongoMemoryOptions): EphemeralService {
         binary: options.version ? { version: options.version } : undefined
       })
       const uri = server.getUri()
-      const seeded = await seedMongo({
-        uri,
-        cwd: ctx.cwd,
-        seedDir: options.seedDir
-      })
+      let seeded: SeedSummary[]
+
+      try {
+        seeded = await seedMongo({
+          uri,
+          cwd: ctx.cwd,
+          seedDir: options.seedDir
+        })
+      } catch (error) {
+        await server.stop().catch(() => undefined)
+        throw error
+      }
 
       return {
         name: 'MongoDB memory server',

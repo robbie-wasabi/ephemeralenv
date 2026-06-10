@@ -5,7 +5,7 @@ import { interpolateArray, interpolateRecord } from './interpolate.js'
 import { createCleanup } from './lifecycle.js'
 import { createLogger, logCleanup, logStartupSummary, quoteCommand, type Logger } from './logger.js'
 import { createPortResolver } from './ports.js'
-import { spawnCommand } from './runCommand.js'
+import { spawnCommand, type SpawnedCommand } from './runCommand.js'
 import { spawnApp } from './spawnApp.js'
 import type { CommandConfig, ResolvedPort, ServiceContext, ServiceStartResult } from './service.js'
 
@@ -107,14 +107,16 @@ export async function run(options: RunOptions = {}): Promise<number> {
       appUrl
     })
 
-    let activeSetupCommandStop: (() => Promise<void>) | undefined
+    let activeSetupCommand: SpawnedCommand | undefined
     const cleanupSetup = createCleanup([
+      ...serviceStops,
       async () => {
-        await activeSetupCommandStop?.()
-      },
-      ...serviceStops
+        await activeSetupCommand?.stop()
+      }
     ])
-    const removeSetupSignalHandlers = installSignalHandlers(cleanupSetup, logger)
+    const removeSetupSignalHandlers = installSignalHandlers(cleanupSetup, logger, () => {
+      activeSetupCommand?.forceKill()
+    })
 
     try {
       for (const command of beforeAppCommands) {
@@ -124,12 +126,12 @@ export async function run(options: RunOptions = {}): Promise<number> {
           cwd,
           env: appEnv
         })
-        activeSetupCommandStop = setupCommand.stop
+        activeSetupCommand = setupCommand
 
         try {
           await setupCommand.exit
         } finally {
-          activeSetupCommandStop = undefined
+          activeSetupCommand = undefined
         }
       }
     } finally {
@@ -142,8 +144,8 @@ export async function run(options: RunOptions = {}): Promise<number> {
       cwd,
       env: appEnv
     })
-    const cleanup = createCleanup([app.stop, ...serviceStops])
-    const removeSignalHandlers = installSignalHandlers(cleanup, logger)
+    const cleanup = createCleanup([...serviceStops, app.stop])
+    const removeSignalHandlers = installSignalHandlers(cleanup, logger, app.forceKill)
 
     try {
       const exitCode = await app.exit
@@ -169,12 +171,20 @@ function serviceEnvOverrideWarnings(generatedServiceEnv: Record<string, string>,
     .map(([key]) => `existing process env ${key} overrides generated service value`)
 }
 
-function installSignalHandlers(cleanup: () => Promise<void>, logger: Logger): () => void {
+function installSignalHandlers(cleanup: () => Promise<void>, logger: Logger, forceKill?: () => void): () => void {
   const signals: NodeJS.Signals[] = process.platform === 'win32' ? ['SIGINT', 'SIGTERM'] : ['SIGINT', 'SIGTERM', 'SIGHUP']
   const handlers = new Map<NodeJS.Signals, () => void>()
+  let cleaningUp = false
 
   for (const signal of signals) {
     const handler = () => {
+      if (cleaningUp) {
+        logCleanup(logger, `received ${signal} again; forcing exit`)
+        forceKill?.()
+        process.exit(signalToExitCode(signal))
+      }
+
+      cleaningUp = true
       logCleanup(logger, `received ${signal}; cleaning up...`)
       cleanup()
         .catch((error: unknown) => {
@@ -186,7 +196,7 @@ function installSignalHandlers(cleanup: () => Promise<void>, logger: Logger): ()
     }
 
     handlers.set(signal, handler)
-    process.once(signal, handler)
+    process.on(signal, handler)
   }
 
   return () => {

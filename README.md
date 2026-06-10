@@ -259,3 +259,13 @@ The deterministic preferred port was occupied, so the runner selected a free fal
 
 **I need Prisma migrations.**
 Use `beforeApp` to run scripts such as `pnpm db:migrate:deploy` and `pnpm db:seed` after the database starts and before the app starts.
+
+**Multiple Next.js environments slow my machine down.**
+Each webpack-based `next dev` process can use 1-3 GB of RAM. If concurrent environments exhaust memory, use Turbopack in your app command for a much smaller footprint:
+
+```ts
+app: {
+  command: 'pnpm',
+  args: ['next', 'dev', '--turbopack', '--port', '$APP_PORT']
+}
+```
