@@ -22,8 +22,8 @@ export function logStartupSummary(options: {
   ports: ResolvedPort[]
   services: ServiceStartResult[]
   beforeAppCommands: string[][]
-  appCommand: string[]
-  appUrl: string
+  appCommand?: string[]
+  appUrl?: string
 }): void {
   const { logger } = options
 
@@ -84,8 +84,12 @@ export function logStartupSummary(options: {
 
   logger.line()
   logger.line('App:')
-  logger.line(`  command: ${quoteCommand(options.appCommand)}`)
-  logger.line(`  url: ${options.appUrl}`)
+  if (options.appCommand && options.appUrl) {
+    logger.line(`  command: ${quoteCommand(options.appCommand)}`)
+    logger.line(`  url: ${options.appUrl}`)
+  } else {
+    logger.line('  (none — services-only mode)')
+  }
 
   const firstServiceEnv = options.services.flatMap((service) => Object.entries(service.env))[0]
   if (firstServiceEnv) {

@@ -180,6 +180,46 @@ export default defineConfig({
 
 Commands run sequentially, inherit stdio, receive the same runtime env as the app, and stop startup if any command exits nonzero.
 
+## Backend-Only Mode
+
+`app` is optional. Omit it to bring up just the services plus `beforeApp` migrations/seeds, then hold everything open until interrupted — no web server. This is ideal for headless tooling (CLIs, integration/tie-out harnesses, batch jobs) that needs the migrated and seeded database but not the app.
+
+```ts
+import { defineConfig } from 'ephemeralenv'
+import { pglite } from 'ephemeralenv-postgres'
+
+export default defineConfig({
+  envFile: '.env.ephm',
+  namespace: 'my-app-db',
+  beforeApp: [
+    ['pnpm', 'db:migrate:deploy'],
+    ['pnpm', 'db:seed']
+  ],
+  services: [
+    pglite({
+      env: 'DATABASE_URL',
+      port: { base: 16_000, range: 5000 }
+    })
+  ]
+})
+```
+
+`ephemeralenv` starts the services, runs `beforeApp`, prints the generated connection env (e.g. `DATABASE_URL`), and holds the services open until it receives `SIGINT`/`SIGTERM`. Keep your full config and a separate db-only config, or omit `app` conditionally from one config.
+
+> Connecting your own process (rather than the app) to the PGlite socket? Prisma issues parallel sub-queries for `findMany({ include })`, so set `DATABASE_POOL_MAX=1` to avoid exhausting the single-connection socket — the same constraint the app already honors.
+
+When embedding `run()` programmatically, pass an `AbortSignal` to trigger the same graceful shutdown:
+
+```ts
+import { run } from 'ephemeralenv'
+
+const controller = new AbortController()
+const exit = run({ signal: controller.signal })
+// ... later, when your harness finishes:
+controller.abort()
+await exit
+```
+
 ## Running Multiple Environments
 
 Ports are derived from:

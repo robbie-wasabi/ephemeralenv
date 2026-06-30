@@ -52,5 +52,12 @@ function isConfig(value: unknown): value is EphemeralConfig {
   }
 
   const maybe = value as Partial<EphemeralConfig>
-  return Boolean(maybe.app && typeof maybe.app.command === 'string' && maybe.app.port)
+
+  if (maybe.app !== undefined) {
+    return typeof maybe.app.command === 'string' && Boolean(maybe.app.port)
+  }
+
+  // Backend-only mode: `app` is optional, but services-only runs still need
+  // services to bring up (and optionally `beforeApp` to seed them).
+  return Array.isArray(maybe.services) && maybe.services.length > 0
 }

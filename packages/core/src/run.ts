@@ -14,6 +14,12 @@ export type RunOptions = {
   cwd?: string
   configPath?: string
   logger?: Logger
+  /**
+   * Aborting this signal triggers a graceful shutdown in backend-only mode
+   * (no `app` configured), mirroring an interrupt. Useful for embedding `run`
+   * in a longer-lived process or test.
+   */
+  signal?: AbortSignal
 }
 
 export async function run(options: RunOptions = {}): Promise<number> {
@@ -43,12 +49,17 @@ export async function run(options: RunOptions = {}): Promise<number> {
   const generatedServiceEnv: Record<string, string> = {}
 
   try {
-    const appPort = await resolvePort('app', config.app.port, {
-      envVar: 'APP_PORT',
-      defaultBase: 10_000,
-      defaultRange: 5000
-    })
-    selectedPorts.push(appPort)
+    let appPort: ResolvedPort | undefined
+    if (config.app) {
+      appPort = await resolvePort('app', config.app.port, {
+        envVar: 'APP_PORT',
+        defaultBase: 10_000,
+        defaultRange: 5000
+      })
+      selectedPorts.push(appPort)
+    }
+
+    const appPortEnv: Record<string, string> = appPort ? { APP_PORT: String(appPort.port) } : {}
 
     const serviceContext: ServiceContext = {
       cwd,
@@ -56,7 +67,7 @@ export async function run(options: RunOptions = {}): Promise<number> {
       environmentId,
       env: {
         ...baseEnv,
-        APP_PORT: String(appPort.port)
+        ...appPortEnv
       },
       resolvePort: async (name, portConfig, resolverOptions) => {
         const resolved = await resolvePort(name, portConfig, resolverOptions)
@@ -74,11 +85,11 @@ export async function run(options: RunOptions = {}): Promise<number> {
     }
 
     const generatedAppEnv = {
-      APP_PORT: String(appPort.port),
-      ...interpolateRecord(config.app.env, {
+      ...appPortEnv,
+      ...interpolateRecord(config.app?.env, {
         ...baseEnv,
         ...generatedServiceEnv,
-        APP_PORT: String(appPort.port)
+        ...appPortEnv
       })
     }
     const appEnv = mergeRuntimeEnv({
@@ -89,9 +100,9 @@ export async function run(options: RunOptions = {}): Promise<number> {
       },
       processEnv
     })
-    const appArgs = interpolateArray(config.app.args, appEnv)
-    const appUrl = `http://localhost:${appPort.port}`
-    const appCommand = [config.app.command, ...appArgs]
+    const appArgs = interpolateArray(config.app?.args, appEnv)
+    const appUrl = appPort ? `http://localhost:${appPort.port}` : undefined
+    const appCommand = config.app ? [config.app.command, ...appArgs] : undefined
     const beforeAppCommands = interpolateCommands(config.beforeApp, appEnv)
     const warnings = serviceEnvOverrideWarnings(generatedServiceEnv, processEnv)
 
@@ -141,6 +152,12 @@ export async function run(options: RunOptions = {}): Promise<number> {
       removeSetupSignalHandlers()
     }
 
+    if (!config.app) {
+      const cleanup = createCleanup([slot.release, ...serviceStops])
+      logger.line('services ready; holding open until interrupted (Ctrl-C to stop)')
+      return await holdUntilInterrupted({ cleanup, logger, signal: options.signal })
+    }
+
     const app = spawnApp({
       command: config.app.command,
       args: appArgs,
@@ -172,6 +189,71 @@ function serviceEnvOverrideWarnings(generatedServiceEnv: Record<string, string>,
   return Object.entries(generatedServiceEnv)
     .filter(([key, value]) => processEnv[key] !== undefined && processEnv[key] !== value)
     .map(([key]) => `existing process env ${key} overrides generated service value`)
+}
+
+function holdUntilInterrupted(options: {
+  cleanup: () => Promise<void>
+  logger: Logger
+  signal?: AbortSignal
+}): Promise<number> {
+  const { cleanup, logger, signal } = options
+  const signals: NodeJS.Signals[] = process.platform === 'win32' ? ['SIGINT', 'SIGTERM'] : ['SIGINT', 'SIGTERM', 'SIGHUP']
+
+  return new Promise<number>((resolve) => {
+    const handlers = new Map<NodeJS.Signals, () => void>()
+    let shuttingDown = false
+
+    const teardown = () => {
+      for (const [sig, handler] of handlers) {
+        process.off(sig, handler)
+      }
+      signal?.removeEventListener('abort', onAbort)
+    }
+
+    const shutdown = (exitCode: number, reason: string) => {
+      if (shuttingDown) {
+        return
+      }
+
+      shuttingDown = true
+      teardown()
+      logCleanup(logger, `${reason}; cleaning up...`)
+      cleanup()
+        .catch((error: unknown) => {
+          console.error(error)
+        })
+        .finally(() => {
+          resolve(exitCode)
+        })
+    }
+
+    function onAbort() {
+      shutdown(0, 'shutdown requested')
+    }
+
+    if (signal) {
+      if (signal.aborted) {
+        onAbort()
+        return
+      }
+
+      signal.addEventListener('abort', onAbort, { once: true })
+    }
+
+    for (const sig of signals) {
+      const handler = () => {
+        if (shuttingDown) {
+          logCleanup(logger, `received ${sig} again; forcing exit`)
+          process.exit(signalToExitCode(sig))
+        }
+
+        shutdown(signalToExitCode(sig), `received ${sig}`)
+      }
+
+      handlers.set(sig, handler)
+      process.on(sig, handler)
+    }
+  })
 }
 
 function installSignalHandlers(cleanup: () => Promise<void>, logger: Logger, forceKill?: () => void): () => void {

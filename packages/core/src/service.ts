@@ -16,7 +16,12 @@ export type EphemeralConfig = {
   envFile?: string
   namespace?: string
   beforeApp?: CommandConfig[]
-  app: AppConfig
+  /**
+   * The app to run after services start and `beforeApp` completes. Omit it for
+   * backend-only mode: services start, `beforeApp` runs, then the services are
+   * held open until the process is interrupted.
+   */
+  app?: AppConfig
   services?: EphemeralService[]
 }
 

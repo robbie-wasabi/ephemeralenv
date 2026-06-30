@@ -91,6 +91,36 @@ describe('run', () => {
     await expect(run({ cwd, configPath, logger: { line() {} } })).rejects.toThrow('service exploded')
     await expect(readdir(slotDir)).resolves.toEqual([])
   })
+
+  test('runs services + beforeApp without an app and holds open until interrupted', async () => {
+    const cwd = await mkdtemp(join(tmpdir(), 'ephemeralenv-run-'))
+    const configPath = join(cwd, 'ephemeralenv.config.mjs')
+    const logPath = join(cwd, 'order.log')
+    const lines: string[] = []
+
+    await writeFile(configPath, backendOnlyConfigSource({ logPath }))
+
+    const controller = new AbortController()
+    const runPromise = run({
+      cwd,
+      configPath,
+      signal: controller.signal,
+      logger: {
+        line(message = '') {
+          lines.push(message)
+        }
+      }
+    })
+    // Abort triggers a graceful shutdown once startup + beforeApp complete.
+    controller.abort()
+
+    const exitCode = await runPromise
+
+    expect(exitCode).toBe(0)
+    await expect(readFile(logPath, 'utf8')).resolves.toBe(['service:start', 'before:ran', 'service:stop', ''].join('\n'))
+    expect(lines).toContain('  (none — services-only mode)')
+    expect(lines).toContain('services ready; holding open until interrupted (Ctrl-C to stop)')
+  })
 })
 
 function minimalConfigSource(): string {
@@ -120,6 +150,40 @@ function failingServiceConfigSource(): string {
           name: 'Broken service',
           async start() {
             throw new Error('service exploded')
+          }
+        }
+      ]
+    }
+  `
+}
+
+function backendOnlyConfigSource(options: { logPath: string }): string {
+  const beforeAppScript = `
+    const { appendFileSync } = require('node:fs')
+    if (process.env.EPHEMERALENV_TEST_MARKER !== 'generated') process.exit(2)
+    appendFileSync(${JSON.stringify(options.logPath)}, 'before:ran\\n')
+  `
+
+  return `
+    export default {
+      namespace: 'run-test',
+      beforeApp: [
+        [${JSON.stringify(process.execPath)}, '-e', ${JSON.stringify(beforeAppScript)}]
+      ],
+      services: [
+        {
+          name: 'Fake service',
+          async start() {
+            const { appendFileSync } = await import('node:fs')
+            appendFileSync(${JSON.stringify(options.logPath)}, 'service:start\\n')
+            return {
+              name: 'Fake service',
+              env: { EPHEMERALENV_TEST_MARKER: 'generated' },
+              async stop() {
+                const { appendFileSync } = await import('node:fs')
+                appendFileSync(${JSON.stringify(options.logPath)}, 'service:stop\\n')
+              }
+            }
           }
         }
       ]
