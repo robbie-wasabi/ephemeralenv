@@ -145,9 +145,11 @@ data/seeds/postgres/
 The app receives:
 
 ```txt
-DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:<port>/postgres
+DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:<port>/postgres?sslmode=disable
 PGSSLMODE=disable
 ```
+
+The URL carries `sslmode=disable` because the PGlite socket never speaks TLS — it is usable verbatim by any client, including ones that only see the printed env (backend-only mode, external scripts). The socket server accepts up to 20 concurrent connections by default (queries are serialized onto the single PGlite session); tune with `pglite({ maxConnections })`.
 
 ## Prisma and beforeApp Commands
 
@@ -206,7 +208,7 @@ export default defineConfig({
 
 `ephemeralenv` starts the services, runs `beforeApp`, prints the generated connection env (e.g. `DATABASE_URL`), and holds the services open until it receives `SIGINT`/`SIGTERM`. Keep your full config and a separate db-only config, or omit `app` conditionally from one config.
 
-> Connecting your own process (rather than the app) to the PGlite socket? Prisma issues parallel sub-queries for `findMany({ include })`, so set `DATABASE_POOL_MAX=1` to avoid exhausting the single-connection socket — the same constraint the app already honors.
+> Connecting your own process (rather than the app) to the PGlite socket? Use the printed `DATABASE_URL` verbatim — it already carries `sslmode=disable`, and the socket server accepts pooled clients (20 concurrent connections by default; queries serialize onto the single PGlite session). No `DATABASE_POOL_MAX=1` workaround is needed.
 
 When embedding `run()` programmatically, pass an `AbortSignal` to trigger the same graceful shutdown:
 
@@ -301,10 +303,10 @@ V1 intentionally avoids multi-service orchestration, recursive seed directories,
 ## Troubleshooting
 
 **My app expects SSL Postgres.**
-PGlite socket connections do not support SSL. Configure your local client with `ssl: false` or `PGSSLMODE=disable`.
+PGlite socket connections do not support SSL. The generated `DATABASE_URL` already appends `sslmode=disable`; if you build your own connection config, use `ssl: false` or `PGSSLMODE=disable`.
 
 **My app opens many Postgres connections.**
-PGlite is a single-user database exposed through a socket server. It can support multiple clients through the socket layer, but concurrency is not the same as native Postgres.
+PGlite is a single-user database exposed through a socket server. The socket layer accepts up to 20 concurrent connections by default (`pglite({ maxConnections })` to change) and serializes their queries onto the single PGlite session — fine for pooled dev clients, but concurrency is not the same as native Postgres.
 
 **My seed file was not loaded.**
 Mongo only reads direct child `*.json` files from `seedDir`. Postgres only reads direct child `*.sql` files from `sqlDir`. Directories are not recursive in V1.
