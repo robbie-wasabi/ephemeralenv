@@ -1,6 +1,6 @@
 {
   "name": "ephemeralenv",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Core runner and CLI for disposable local QA environments.",
   "type": "module",
   "license": "MIT",
@@ -32,7 +32,10 @@
       "default": "./dist/index.js"
     }
   },
-  "files": ["bin", "dist"],
+  "files": [
+    "bin",
+    "dist"
+  ],
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",

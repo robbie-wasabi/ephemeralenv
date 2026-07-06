@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.1
+
+- Republish of 0.3.0. The npm `0.3.0` artifacts were published from a stale checkout and are missing backend-only mode and the postgres pooling fix below; use 0.3.1.
+
 ## 0.3.0
 
 - Support backend-only mode: `app` is now optional; services + `beforeApp` run, then hold open until interrupted. `run()` accepts an `AbortSignal` for programmatic shutdown.
